@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Scheda">
@@ -112,6 +113,7 @@ S.rest=S.rest||{};
 const save=()=>{try{localStorage.setItem("scheda1",JSON.stringify(S))}catch(e){}};
 const $=s=>document.querySelector(s);
 const today=()=>new Date().toLocaleDateString("sv-SE");
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>String(n).replace(".",",");
 const rest=e=>S.rest[e[0]]??e[5];
 const mmss=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
@@ -141,8 +143,8 @@ function sets(e){const id=e[0];if(!S.cur[id])S.cur[id]=Array.from({length:e[2]},
 function hint(e){
   const h=(S.hist[e[0]]||[]).slice(-1)[0];
   if(!h)return e[6]?`Parti da ${fmt(e[6])} kg`:"Primo allenamento: trova un carico con 2–3 rip. di riserva";
-  const txt=h.s.map(x=>x[1]).join(", "),all=h.s.every(x=>+x[1]>=e[4]);
-  return `Ultima volta: ${fmt(h.s[0][0])} kg × ${txt}`+(all?` · <b>Sali di 1–2,5 kg</b>`:"");
+  const txt=h.s.map(x=>esc(x[1])).join(", "),all=h.s.every(x=>+x[1]>=e[4]);
+  return `Ultima volta: ${esc(fmt(h.s[0][0]))} kg × ${txt}`+(all?` · <b>Sali di 1–2,5 kg</b>`:"");
 }
 function viewW(){
   const list=EX[S.day];
@@ -151,7 +153,7 @@ function viewW(){
     const ss=sets(e),base=S.kg[e[0]]??(e[6]||"");
     return `<section class="ex"><h2>${e[1]}</h2><div class="meta">${e[2]} × ${e[3]}–${e[4]} rip.${e[7]?" · "+e[7]:""}</div><div class="rest">Recupero <button data-rs="${e[0]}:-15" aria-label="meno 15 secondi">−</button><b>${mmss(rest(e))}</b><button data-rs="${e[0]}:15" aria-label="più 15 secondi">+</button></div><p class="hint">${hint(e)}</p>
     <div class="lab"><span></span><span>kg</span><span>ripetizioni</span><span></span></div>
-    ${ss.map((s,i)=>`<div class="set"><span>${i+1}</span><input inputmode="decimal" aria-label="kg serie ${i+1}" data-k="${e[0]}:${i}" value="${s.k!==""?s.k:base}"><input inputmode="numeric" aria-label="ripetizioni serie ${i+1}" data-r="${e[0]}:${i}" value="${s.r}" placeholder="${e[3]}–${e[4]}"><button class="chk ${s.d?"on":""}" data-c="${e[0]}:${i}" aria-label="serie completata">✓</button></div>`).join("")}</section>`}).join("");
+    ${ss.map((s,i)=>`<div class="set"><span>${i+1}</span><input inputmode="decimal" aria-label="kg serie ${i+1}" data-k="${e[0]}:${i}" value="${esc(s.k!==""?s.k:base)}"><input inputmode="numeric" aria-label="ripetizioni serie ${i+1}" data-r="${e[0]}:${i}" value="${esc(s.r)}" placeholder="${e[3]}–${e[4]}"><button class="chk ${s.d?"on":""}" data-c="${e[0]}:${i}" aria-label="serie completata">✓</button></div>`).join("")}</section>`}).join("");
   h+=`<button class="big" data-fin="1">Termina allenamento e salva</button>`;
   return h;
 }
@@ -190,7 +192,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("input",e=>{
   const t=e.target,d=t.dataset;
-  if(d.k||d.r){const[id,i]=(d.k||d.r).split(":"),s=sets(find(id))[+i];if(d.k){s.k=t.value;if(t.value!=="")S.kg[id]=t.value}else s.r=t.value;save()}
+  if(d.k||d.r){t.value=t.value.replace(/[^0-9.,]/g,"");const[id,i]=(d.k||d.r).split(":"),s=sets(find(id))[+i];if(d.k){s.k=t.value;if(t.value!=="")S.kg[id]=t.value}else s.r=t.value;save()}
   else if(t.id==="dk"||t.id==="dp"){S.diet.kcal=+$("#dk").value||0;S.diet.p=+$("#dp").value||0;save()}
 });
 $("#pre").innerHTML=[60,90,120,180].map(s=>`<button data-t="${s}">${s>=120?s/60+" min":s===60?"1 min":"90 s"}</button>`).join("");
@@ -199,4 +201,3 @@ if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWo
 </script>
 </body>
 </html>
-
